@@ -1,0 +1,16 @@
+{
+  "zenhub": {
+    "workspace_id": "1a2b3c4d5e6f7g8h9i0",
+    "target_pipeline": "New Issues"
+  },
+  "github": {
+    "organization": "kyagi",
+    "repositories": [
+      { "repository_name": "awesome-project", "repository_id": "123456789" },
+      { "repository_name": "great-project",   "repository_id": "234567890" }
+    ]
+  },
+  "slack": {
+    "webhook_url": "https://hooks.slack.com/services/A1B2C3C4D/X1Y2Z3A4B5C/1a2b3c4d5e6f7g8h9i0jzzzz"
+  }
+}
