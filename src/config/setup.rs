@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use std::iter::Map;
+use url::{Url, ParseError};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Zenhub {
@@ -33,6 +34,12 @@ pub struct Config {
     pub zenhub: Zenhub,
     pub github: Github,
     pub slack: Slack,
+}
+
+pub struct Endpoint {
+    pub github: Github,
+    pub zenhub: Zenhub,
+    pub endpoint:Result<Url, ParseError>
 }
 
 pub fn get<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
