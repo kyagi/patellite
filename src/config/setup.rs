@@ -36,10 +36,11 @@ pub struct Config {
     pub slack: Slack,
 }
 
-pub struct Endpoint {
-    pub github: Github,
-    pub zenhub: Zenhub,
-    pub endpoint:Result<Url, ParseError>
+// https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html#lifetime-annotations-in-struct-definitions
+pub struct Endpoint<'a> {
+    pub github: &'a Github,
+    pub zenhub: &'a Zenhub,
+    pub url: Result<Url, ParseError>
 }
 
 pub fn get<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
@@ -49,6 +50,26 @@ pub fn get<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
 
     // Read the JSON contents of the file as an instance of `Config`.
     let c: Config = serde_json::from_reader(reader)?;
+
+    // Return the `Config`.
+    Ok(c)
+}
+
+pub fn get_endpoint <P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
+    // Open the file in read-only mode with buffer.
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    // Read the JSON contents of the file as an instance of `Config`.
+    let c: Config = serde_json::from_reader(reader)?;
+
+    for r in &c.github.repositories {
+        let url = format!("https://api.zenhub.com/p2/workspaces/{}/repositories", c.zenhub.workspace_id);
+        let url = format!("{}/{}/board", url, r.repository_id);
+        let url: Result<Url, ParseError> = Url::parse(&url);
+        let ep: Endpoint = Endpoint { github: &c.github, zenhub: &c.zenhub, url };
+        println!("{}", ep.url.unwrap());
+    }
 
     // Return the `Config`.
     Ok(c)
