@@ -33,9 +33,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let c = setup::get("config.json").unwrap();
-    println!("{:#?}", c);
+    // println!("{:#?}", c);
     let [v1, v2] = setup::create_zenhub_endpoint(&c.zenhub.workspace_id, &c.github.repositories);
-    println!("{:?}", v1);
+    // println!("{:?}", v1);
+
+    let endpoints = setup::get_endpoint(&c).unwrap();
+    for e in endpoints.iter() {
+        println!("{}", e.zenhub.workspace_id);
+        println!("{}", e.github.organization);
+        for r in &e.github.repositories {
+            println!("{} {}", r.repository_name, r.repository_id);
+        }
+        println!("{}", e.url.as_ref().unwrap());
+    }
 
     for (pos, x) in v1.iter().enumerate() {
         println!("----{}", x);
