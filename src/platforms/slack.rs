@@ -8,17 +8,16 @@ pub async fn notify(msg: &str) -> Result<(), reqwest::Error> {
     let mut map = HashMap::new();
     map.insert("text", msg);
 
-    // TODO: Fix this.
+    // // TODO: Fix this.
     let webhook_url = get_webhook_url();
-    let webhook_url = &webhook_url[1..&webhook_url.len()-1];
-    let client = reqwest::Client::new();
-    /*
-    client.post(webhook_url)
-        .json(&map)
-        .send()
-        .await?;
+    println!("{}", webhook_url);
+    // let webhook_url = &webhook_url[1..&webhook_url.len()-1];
+    // let client = reqwest::Client::new();
+    // client.post(webhook_url)
+    //     .json(&map)
+    //     .send()
+    //     .await?;
 
-    */
     Ok(())
 }
 
