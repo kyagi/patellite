@@ -1,7 +1,3 @@
-use reqwest::header;
-use std::env;
-use std::process;
-
 mod platforms;
 pub use crate::platforms::zenhub;
 pub use crate::platforms::slack;
@@ -15,72 +11,30 @@ pub use crate::config::setup;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    let token_key= "zenhub_auth_token";
-    let token= match env::var(token_key) {
-        Ok(val) => val,
-        Err(err) => {
-            println!("{}: {}", err, token_key);
-            process::exit(1);
-        }
-    };
-
-    // https://docs.rs/reqwest/0.11.9/reqwest/struct.ClientBuilder.html
-    let mut headers = header::HeaderMap::new();
-    headers.insert("X-Authentication-Token", header::HeaderValue::from_str(&token).unwrap());
-
-    let client = reqwest::Client::builder()
-        .default_headers(headers)
-        .build()?;
-
+    let client = zenhub::get_client().unwrap();
     let c = setup::get("config.json").unwrap();
-    // println!("{:#?}", c);
-    let [v1, v2] = setup::create_zenhub_endpoint(&c.zenhub.workspace_id, &c.github.repositories);
-    // println!("{:?}", v1);
 
-    let endpoints = setup::get_endpoint(&c).unwrap();
+    let endpoints = setup::get_endpoints(&c).unwrap();
     for e in endpoints.iter() {
-        println!("{}", e.zenhub.workspace_id);
-        println!("{}", e.github.organization);
-        for r in &e.github.repositories {
-            println!("{} {}", r.repository_name, r.repository_id);
-        }
+        // impl InfoUrl for String
+        // https://docs.rs/reqwest/latest/reqwest/trait.IntoUrl.html
         println!("{}", e.url.as_ref().unwrap());
-    }
+        let body = client.get(e.url.as_ref().unwrap().as_str()).send().await?.text().await?;
+        let body_json: zenhub::Response = serde_json::from_str(&body)?;
 
-    for (pos, x) in v1.iter().enumerate() {
-        println!("----{}", x);
-        println!("####{}", v2[pos]);
-        let body = client.get(x).send().await?.text().await?;
-        let t: zenhub::Top = serde_json::from_str(&body)?;
-        f1(&t.pipelines, &v2[pos], &c.github.organization, &c.zenhub.target_pipeline).await?;
+        do_only_if_specific_pipeline(&body_json.pipelines,&e.repository.repository_name, &c.github.organization, &c.zenhub.target_pipeline).await?;
     }
 
     Ok(())
 }
 
-async fn f2(issue_number: u32, v2: &str, o: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{}", issue_number);
-    let result1 = my_redis::get(issue_number);
-    match result1 {
-        Err(i) => {
-            println!("NEW! https://github.com/{}/{}/pull/{}", o, v2, issue_number);
-            let m = format!("NEW! https://github.com/{}/{}/pull/{}", o, v2, issue_number);
-            slack::notify(&m).await?;
-        },
-        Ok(i) => (),
-    };
-    let result = my_redis::set(issue_number);
-    println!("{:?}", result.unwrap());
-    Ok(())
-}
-
-async fn f1(v: &Vec<zenhub::Pipeline>, v2: &str, o: &str, tp: &str) -> Result<(), Box<dyn std::error::Error>> {
-    for p in v {
+async fn do_only_if_specific_pipeline(pipelines: &Vec<zenhub::Pipeline>, github_repository_name: &str,  github_organization: &str, target_pipeline: &str) -> Result<(), Box<dyn std::error::Error>> {
+    for p in pipelines {
         // TODO: fix this.
         match p.name {
-            _ if p.name == tp => {
+            _ if p.name == target_pipeline => {
                 for i in &p.issues {
-                    f2(i.issue_number, v2, o).await?;
+                    check_and_notify(i.issue_number, github_repository_name, github_organization).await?;
                 }
             }
             _ => ()
@@ -88,3 +42,19 @@ async fn f1(v: &Vec<zenhub::Pipeline>, v2: &str, o: &str, tp: &str) -> Result<()
     }
     Ok(())
 }
+
+async fn check_and_notify(issue_number: u32, github_repository_name: &str, github_organization: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", issue_number);
+    let result1 = my_redis::get(issue_number);
+    match result1 {
+        Err(_i) => {
+            println!("NEW! https://github.com/{}/{}/pull/{}", github_organization, github_repository_name, issue_number);
+            let m = format!("NEW! https://github.com/{}/{}/pull/{}", github_organization, github_repository_name, issue_number);
+            slack::notify(&m).await?;
+            let _result = my_redis::set(issue_number);
+        },
+        Ok(_i) => (),
+    };
+    Ok(())
+}
+
