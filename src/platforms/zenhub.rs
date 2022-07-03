@@ -5,7 +5,7 @@ use reqwest::header;
 
 #[derive(Serialize, Deserialize)]
 pub struct Issue {
-    pub issue_number: u32,
+    pub issue_number: u64,
     pub is_epic: bool,
     pub position: u8,
 }

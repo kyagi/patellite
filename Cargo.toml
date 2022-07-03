@@ -13,3 +13,4 @@ serde_json = { version = "1.0",     features = ["default"] }
 redis =      { version = "0.21.5",  features = ["default"] }
 chrono =     { version = "0.4",     features = ["default"] }
 url =        { version = "2",       features = ["serde"]   }
+octocrab = "0.16"

@@ -7,6 +7,7 @@ pub use crate::db::redis as my_redis;
 
 mod config;
 pub use crate::config::setup;
+use crate::platforms::github;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,13 +44,14 @@ async fn do_only_if_specific_pipeline(pipelines: &Vec<zenhub::Pipeline>, github_
     Ok(())
 }
 
-async fn check_and_notify(issue_number: u32, github_repository_name: &str, github_organization: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn check_and_notify(issue_number: u64, github_repository_name: &str, github_organization: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", issue_number);
     let result1 = my_redis::get(issue_number);
     match result1 {
         Err(_i) => {
-            println!("NEW! https://github.com/{}/{}/pull/{}", github_organization, github_repository_name, issue_number);
-            let m = format!("NEW! https://github.com/{}/{}/pull/{}", github_organization, github_repository_name, issue_number);
+            let title = github::get_pull(github_organization, github_repository_name, issue_number).await?;
+            println!(":new: <https://github.com/{}/{}/pull/{}|{}>", github_organization, github_repository_name, issue_number, title);
+            let m = format!(":new: <https://github.com/{}/{}/pull/{}|{}>", github_organization, github_repository_name, issue_number, title);
             slack::notify(&m).await?;
             let _result = my_redis::set(issue_number);
         },
