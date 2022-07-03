@@ -1,7 +1,7 @@
 use redis::Commands;
 use chrono::prelude::*;
 
-pub fn set(issue_number: u32) -> redis::RedisResult<String> {
+pub fn set(issue_number: u64) -> redis::RedisResult<String> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_connection()?;
     // throw away the result, just make sure it does not fail
@@ -12,7 +12,7 @@ pub fn set(issue_number: u32) -> redis::RedisResult<String> {
 
 // TODO: should be String(repos + issue_number)
 // in case for conflicting issue numbers among different repositories
-pub fn get(issue_number: u32) -> redis::RedisResult<String> {
+pub fn get(issue_number: u64) -> redis::RedisResult<String> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_connection()?;
     con.get(issue_number)
